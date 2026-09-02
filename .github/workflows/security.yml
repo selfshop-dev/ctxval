@@ -27,7 +27,7 @@ jobs:
           cache: true
 
       - name: Install govulncheck
-        run: GOBIN="$BIN_DIR" go install golang.org/x/vuln/cmd/govulncheck
+        run: GOBIN="$BIN_DIR" go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: Add tools to PATH
         run: echo "$BIN_DIR" >> "$GITHUB_PATH"
