@@ -1,0 +1,57 @@
+name: Security Scan
+on:
+  pull_request: { branches: [ main ] }
+  push:         { branches: [ main ] }
+  schedule:
+    - cron: '0 7 * * 1'
+
+permissions: { contents: read }
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install govulncheck
+        env:
+          GOBIN: ${{ github.workspace }}/bin
+        run: |
+          mkdir -p "$GOBIN"
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+
+      - name: Add tools to PATH
+        run: echo "${{ github.workspace }}/bin" >> "$GITHUB_PATH"
+
+      - name: Run govulncheck
+        run: govulncheck ./...
+
+  trivy:
+    name: Trivy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          format: table
+          scan-ref: .
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          vuln-type: library
+          exit-code: "1"

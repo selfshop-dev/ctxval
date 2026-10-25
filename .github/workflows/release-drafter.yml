@@ -1,0 +1,14 @@
+name: Release Drafter
+on:
+  push: { branches: [ main ] }
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  update:
+    name: Update
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v7

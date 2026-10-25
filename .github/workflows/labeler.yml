@@ -1,0 +1,21 @@
+name: Labeler
+
+on:
+  pull_request_target:
+    branches: [ main ]
+    types:    [ opened, edited, synchronize, reopened ]
+
+permissions: {}
+
+jobs:
+  apply:
+    name: Apply
+    runs-on: ubuntu-latest
+
+    permissions:
+      statuses: write
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: fuxingloh/multi-labeler@v5
