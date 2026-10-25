@@ -1,0 +1,56 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+category-template: '### $TITLE'
+
+categories:
+  - type: pre-exclude
+    when:
+      label: 'skip-changelog'
+
+  - title: '💥 Breaking Changes'
+    semver-increment: major
+    exclusive: true
+    when:
+      label: '💥 Breaking Change'
+
+  - title: '🔒 Security'
+    semver-increment: minor
+    exclusive: true
+    when:
+      label: '🔒 Security'
+
+  - title: '✨ Features'
+    semver-increment: minor
+    exclusive: true
+    when:
+      label: '✨ Feature'
+
+  - title: '🐛 Bug Fixes'
+    semver-increment: patch
+    exclusive: true
+    when:
+      label: '🐛 Bug'
+
+  - title: '⚡️ Performance & Refactor'
+    semver-increment: patch
+    exclusive: true
+    when:
+      labels:
+        - '⚡️ Performance'
+        - '🔄 Refactor'
+
+  - title: '🧹 Other Changes'
+    semver-increment: patch
+    exclusive: true
+    collapse-after: 5
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&'
+
+template: |
+  $CHANGES
+
+  ## 🔗 Links
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...$RESOLVED_TAG

@@ -1,0 +1,113 @@
+name: CI
+on:
+  pull_request: { branches: [ main ] }
+  push:         { branches: [ main ] }
+
+permissions: { contents: read }
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check go mod
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Test
+        run: go test ./...
+
+      - name: Test with race detector
+        run: go test -race ./...
+
+      - name: Test with coverage
+        run: |
+          packages=$(
+            go list ./... |
+            grep -v -E '/(vendor|mocks|testdata)(/|$)' || true
+          )
+
+          test -n "$packages"
+
+          go test \
+            -race \
+            -covermode=atomic \
+            -coverprofile=coverage.out \
+            $packages
+
+      - name: Coverage report
+        shell: bash
+        run: |
+          go tool cover -func=coverage.out | tee coverage.txt
+
+          coverage=$(
+            awk '/^total:/ {
+              gsub("%", "", $3)
+              print $3
+            }' coverage.txt
+          )
+
+          test -n "$coverage"
+
+          awk -v coverage="$coverage" 'BEGIN {
+            if (coverage < 100) {
+              printf "coverage is %.1f%%, required 100.0%%\n", coverage
+              exit 1
+            }
+          }'
+
+      - name: Upload coverage to Codecov
+        # The upload is enabled by setting CODECOV_TOKEN. The coverage gate
+        # above is authoritative and does not depend on Codecov.
+        if: >-
+          env.CODECOV_TOKEN != '' &&
+          (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+          files: coverage.out
+          fail_ci_if_error: true
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v7
+        with:
+          retention-days: 30
+          if-no-files-found: error
+          name: coverage
+          path: |
+            coverage.out
+            coverage.txt
