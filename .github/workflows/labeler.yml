@@ -13,9 +13,12 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      statuses: write
+      checks: write
       contents: read
       pull-requests: write
+      statuses: write
 
     steps:
+      # multi-labeler does not create labels, and adding an unknown label fails
+      # the run. Every label in .github/labeler.yml must exist in repository settings.
       - uses: fuxingloh/multi-labeler@v5
